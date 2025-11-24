@@ -1,12 +1,13 @@
 import pandas as pd
 from scipy import stats
-from sklearn.metrics import cohen_kappa_score
 import matplotlib.pyplot as plt
-import os
 
-df = pd.read_csv(os.path.join(os.getcwd(), "evaluation", "all_responses_grading_separated_vllm_with_reference.csv"))
-df_human = pd.read_csv(os.path.join(os.getcwd(), "evaluation", "human_evaluation.csv"))
+df_h = pd.read_csv(r'..\..\evaluation\all_responses_grading_separated_vllm_hercule_with_reference.csv')
+df_m = pd.read_csv(r'..\..\evaluation\all_responses_grading_separated_vllm_m_prometheus_with_reference.csv')
+df_human = pd.read_csv(r'..\..\evaluation\human_evaluation.csv')
 
+# Combine both dataframes
+df = pd.concat([df_h, df_m], ignore_index=True)
 # Remove all columns starting with feedback
 df = df[[col for col in df.columns if not col.startswith('feedback')]]
 
@@ -28,8 +29,9 @@ df_human['std_score'] = df_human[criteria_columns].std(axis=1)
 # Save the cleaned dataframe
 df.to_csv('all_responses_grading_separated_cleaned.csv', index=False)
 
-# Compute IQR for each group and add as a column
+# Group by intervention and score criterias, now including IQR
 def add_iqr(grouped_df, original_df, score_col, group_cols):
+    # Compute IQR for each group and add as a column
     iqr_list = []
     for _, row in grouped_df.iterrows():
         group_filter = (original_df[group_cols[0]] == row[group_cols[0]]) & (original_df[group_cols[1]] == row[group_cols[1]])
@@ -41,7 +43,6 @@ def add_iqr(grouped_df, original_df, score_col, group_cols):
     grouped_df['iqr'] = iqr_list
     return grouped_df
 
-# Group by intervention and score criterias
 grouped_intervention_score_criteria1 = df.groupby(['intervention', 'phase'])['score_criteria1'].agg(['sum','median', 'std', 'count']).reset_index()
 grouped_intervention_score_criteria1['mean'] = df.groupby(['intervention', 'phase'])['score_criteria1'].mean().values
 grouped_intervention_score_criteria1 = add_iqr(grouped_intervention_score_criteria1, df, 'score_criteria1', ['intervention', 'phase'])
@@ -80,7 +81,7 @@ grouped_model_compound_score['intervention'] = df.groupby(['model-name', 'phase'
 grouped_model_compound_score = add_iqr(grouped_model_compound_score, df, 'compound_score', ['model-name', 'phase'])
 
 
-# Save the grouped dataframes
+# Save the grouped dataframe
 grouped_intervention_score_criteria1.to_csv('all_responses_grading_separated_grouped_intervention_score_criteria1.csv', index=False)
 grouped_intervention_score_criteria2.to_csv('all_responses_grading_separated_grouped_intervention_score_criteria2.csv', index=False)
 grouped_intervention_score_criteria3.to_csv('all_responses_grading_separated_grouped_intervention_score_criteria3.csv', index=False)
@@ -91,25 +92,45 @@ grouped_intervention_score_criteria7.to_csv('all_responses_grading_separated_gro
 grouped_intervention_compound_score.to_csv('all_responses_grading_separated_grouped_intervention_mean.csv', index=False)
 grouped_model_compound_score.to_csv('all_responses_grading_separated_grouped_model_mean.csv', index=False)
 
+# Calculate the avager iqr with and without intervention using grouped_model_compound_score
+avg_iqr_with_intervention = grouped_model_compound_score[grouped_model_compound_score['intervention'] == True]['iqr'].mean()
+avg_iqr_without_intervention = grouped_model_compound_score[grouped_model_compound_score['intervention'] == False]['iqr'].mean()
+# Save average IQR results to CSV
+pd.DataFrame([
+    {'intervention': True, 'average_iqr': avg_iqr_with_intervention},
+    {'intervention': False, 'average_iqr': avg_iqr_without_intervention}
+]).to_csv('average_iqr_results.csv', index=False)
+
 # Filter for phase 2
 df_p2 = df[df['phase'] == 2]
 
-# Calculate Cronbach's alpha for the seven criteria
-def cronbach_alpha(df, columns):
-    k = len(columns)
-    item_scores = df[columns]
-    variances = item_scores.var(axis=0, ddof=1)
-    total_score = item_scores.sum(axis=1)
-    total_variance = total_score.var(ddof=1)
-    alpha = (k / (k - 1)) * (1 - variances.sum() / total_variance)
-    return alpha
+# Double plot: models without intervention (top), with intervention (bottom)
+fig, axes = plt.subplots(2, 1, figsize=(12, 10), sharex=True)
 
-alpha = cronbach_alpha(df, criteria_columns)
-print(f"Cronbach's alpha for the seven criteria: {alpha:.4f}")
-# Save Cronbach's alpha to a csv file
-pd.DataFrame([{
-    'cronbach_alpha': alpha
-}]).to_csv('cronbach_alpha_seven_criteria.csv', index=False)
+models_with_intervention = df_p2[df_p2['intervention'] == True]['model-name'].unique()
+models_without_intervention = df_p2[df_p2['intervention'] == False]['model-name'].unique()
+
+# Top plot: models without intervention
+for model_name in models_without_intervention:
+    group = grouped_model_compound_score[grouped_model_compound_score['model-name'] == model_name]
+    axes[0].plot(group['phase'], group['mean'], marker='o', label=model_name)
+axes[0].set_title('Mean Compound Score by Model and Phase (No Intervention)')
+axes[0].set_ylabel('Mean Compound Score')
+axes[0].legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+# Bottom plot: models with intervention
+for model_name in models_with_intervention:
+    group = grouped_model_compound_score[grouped_model_compound_score['model-name'] == model_name]
+    axes[1].plot(group['phase'], group['mean'], marker='o', label=model_name)
+axes[1].set_title('Mean Compound Score by Model and Phase (With Intervention)')
+axes[1].set_xlabel('Phase')
+axes[1].set_ylabel('Mean Compound Score')
+axes[1].legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+plt.xticks(grouped_model_compound_score['phase'].unique())
+plt.tight_layout()
+plt.savefig('mean_compound_score_by_model_and_phase_doubleplot.png')
+plt.close()
 
 # Shapiro-Wilk test on mean compound score and score criterias
 shapiro_wilk_results = []
@@ -179,63 +200,20 @@ for criteria in criteria_columns + ['compound_score']:
     })
 pd.DataFrame(comparison_results).to_csv('human_model_comparison_results.csv', index=False)
 
-# Calculate agreement percentage and Cohen's kappa for all criteria and compound_score
-criteria_to_compare = criteria_columns + ['compound_score']
-agreement_stats = []
+# Calculate Cronbach's alpha for the seven criteria
+def cronbach_alpha(df, columns):
+    k = len(columns)
+    item_scores = df[columns]
+    variances = item_scores.var(axis=0, ddof=1)
+    total_score = item_scores.sum(axis=1)
+    total_variance = total_score.var(ddof=1)
+    alpha = (k / (k - 1)) * (1 - variances.sum() / total_variance)
+    return alpha
 
-for criteria in criteria_to_compare:
-    comparison_winner_results = {}
-    agreement_counter = 0
-    for i in range(len(df_human)):
-        for j in range(len(df_human)):
-            if i == j:
-                continue
-            else:
-                human_response_1_score = df_human.iloc[i][criteria]
-                human_response_2_score = df_human.iloc[j][criteria]
-                model_response_1_score = df[
-                    (df['model-name'] == df_human.iloc[i]['model-name']) &
-                    (df['phase'] == df_human.iloc[i]['phase']) & 
-                    (df['attempt'] == df_human.iloc[i]['attempt'])
-                ][criteria].values[0]
-                model_response_2_score = df[
-                    (df['model-name'] == df_human.iloc[j]['model-name']) &
-                    (df['phase'] == df_human.iloc[j]['phase']) & 
-                    (df['attempt'] == df_human.iloc[j]['attempt'])
-                ][criteria].values[0]
+alpha = cronbach_alpha(df, criteria_columns)
+print(f"Cronbach's alpha for the seven criteria: {alpha:.4f}")
+# Save Cronbach's alpha to a csv file
+pd.DataFrame([{
+    'cronbach_alpha': alpha
+}]).to_csv('cronbach_alpha_seven_criteria.csv', index=False)
 
-                if human_response_1_score > human_response_2_score:
-                    human_response_winner = i
-                elif human_response_1_score < human_response_2_score:
-                    human_response_winner = j
-                else:
-                    human_response_winner = 'tie'
-                
-                if model_response_1_score > model_response_2_score:
-                    model_response_winner = i
-                elif model_response_1_score < model_response_2_score:
-                    model_response_winner = j
-                else:
-                    model_response_winner = 'tie'
-                
-                if human_response_winner == model_response_winner:
-                    agreement_counter += 1
-
-                comparison_winner_results[f'{i}-{j}'] = {
-                    "human_response_winner": human_response_winner,
-                    "model_response_winner": model_response_winner
-                }
-
-    agreement_percentage = agreement_counter / len(comparison_winner_results) * 100
-    human_winners = [v['human_response_winner'] for v in comparison_winner_results.values()]
-    model_winners = [v['model_response_winner'] for v in comparison_winner_results.values()]
-    kappa = cohen_kappa_score(human_winners, model_winners)
-    agreement_stats.append({
-        'criteria': criteria,
-        'agreement_percentage': agreement_percentage,
-        'cohens_kappa': kappa
-    })
-    print(f"{criteria}: Agreement Percentage = {agreement_percentage:.2f}%, Cohen's Kappa = {kappa:.4f}")
-
-# Save results to CSV
-pd.DataFrame(agreement_stats).to_csv('pairwise_agreement_stats.csv', index=False)

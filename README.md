@@ -9,6 +9,7 @@ This repository contains the code, data, and analysis for the master thesis "Ali
 	- Contains public datasets used in experiments.
 - `experiment/`  
 	Contains scripts and data for running experiments, evaluating model responses, and sampling.
+	- `CIA/` - Files required to use the Hercule model as an evaluator. 
     - `analysis/` - Contains statistical analysis scripts and results.
 	- `evaluation` - Contains CSV files with grading from evaluator model.
 	- `responses/` — Raw and joined model response CSVs, organized by phase.  
@@ -23,11 +24,11 @@ This repository contains the code, data, and analysis for the master thesis "Ali
 
 ## Main Scripts
 - **experiment\experiment.py** - Runs experiment.
-- **experiment\evaluation_with_reference_answer.py** - Evaluates responses from experiment with reference answer.
-- **experiment\evaluation_without_reference_answer.py** - Evaluates responses from experiment without reference answer.
+- **experiment\evaluation_with_reference_answer_[model-name].py** - Evaluates responses from experiment with reference answer.
+- **experiment\evaluation_without_reference_answer_[model-name].py** - Evaluates responses from experiment without reference answer.
 - **experiment\join_responses.py** - Joins all responses to facilitate downstream analysis.
-- **experiment\analysis\with_reference_answer\generate_stats.py** - Analyzes and synthesizes results from experiment with reference answer.
-- **experiment\analysis\without_reference_answer\generate_stats.py** - Analyzes and synthesizes results from experiment without reference answer.
+- **experiment\analysis\with_reference_answer_[model-name]\generate_stats.py** - Analyzes and synthesizes results from experiment with reference answer.
+- **experiment\analysis\without_reference_answer_[model-name]\generate_stats.py** - Analyzes and synthesizes results from experiment without reference answer.
 
 ## Getting Started
 

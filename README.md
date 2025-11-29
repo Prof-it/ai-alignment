@@ -3,6 +3,7 @@
 # Aligning Large Language Models with an Organization's Culture, Values and Goals
 This repository contains the code, data, and analysis for the master thesis "Aligning Large Language Models with an Organization's Culture, Values and Goals" by Daniel Pascal Hefti. Please note that, due to the participating organizations' privacy concerns, only the experimental data from a publicly available dataset (the public phase of the master's thesis) is available.
 
+
 ## Repository Structure
 
 - `dataset/`  
@@ -43,3 +44,5 @@ This repository contains the code, data, and analysis for the master thesis "Ali
 ## Project Purpose
 
 The goal of this project is to evaluate and align large language models with organizational culture, values, and goals. It provides tools for automatic and human evaluation, statistical analysis, and reproducible experiments.
+
+**Remark:** To guarantee transparency of the research, the files in this repository reflect the exact scripts used during the public phase of the experiments. The code is script-based and does not necessarily follow best practices in software engineering (e.g., clean code, modularity, reusability).

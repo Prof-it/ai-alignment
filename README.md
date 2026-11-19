@@ -71,11 +71,14 @@ The goal of this project is to evaluate and align large language models with org
 If you use this repository or its methods, please cite:
 
 ```bibtex
-@inproceedings{hefti2026trustworthy,
-  author    = {Hefti, Daniel Pascal and Lu, Tianxiang},
-  title     = {Trustworthy Large Language Models in Organisations: A Competence-Based Alignment Framework},
-  booktitle = {Proceedings of the 2026 International Joint Conference on Neural Networks (IJCNN)},
-  year      = {2026},
-  publisher = {IEEE}
-}
+@INPROCEEDINGS{11728587,
+  author={Hefti, Daniel Pascal and Lu, Tianxiang},
+  booktitle={2026 International Joint Conference on Neural Networks (IJCNN)}, 
+  title={Trustworthy Large Language Models in Organisations: A Competence-Based Alignment Framework}, 
+  year={2026},
+  volume={},
+  number={},
+  pages={1-8},
+  keywords={Modeling;Manuals;Large language models;Organizational aspects;Testing;Radio access networks;Regional area networks;Context;Organizations;Printing;Large language models;Bias mitigation;Bias detection;AI governance;Organisational culture;Competence models},
+  doi={10.1109/IJCNN69854.2026.11728587}}
 ```
